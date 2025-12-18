@@ -155,3 +155,107 @@ Naga Satya Sri Prasad Neelam
 ---
 
 Created as part of a programming challenge to implement CSV parsing mechanics from scratch.
+
+## RFC 4180 Compliance
+
+This implementation fully adheres to **RFC 4180 - Common Format and MIME Type for CSV Files**:
+
+- **Field Delimiters**: Comma (`,`) as field separator
+- **Quote Character**: Double quotes (`"`) to enclose fields
+- **Escaped Quotes**: Doubled quotes (`""`) within quoted fields represent a single quote
+- **Newlines**: Supported within quoted fields as per RFC 4180
+- **Line Endings**: Handles both Unix (`\n`) and Windows (`\r\n`) line terminators
+- **Empty Fields**: Properly preserved and handled
+- **Field Quoting Rules**: Fields are quoted if they contain:
+  - Commas (`,`)
+  - Double quotes (`"`)
+  - Newline characters (`\n`, `\r\n`)
+
+## Error Handling & Edge Cases
+
+### Supported Edge Cases
+
+1. **Quoted Fields with Commas**: `"Alice","123 Main St, New York, NY","USA"`
+2. **Escaped Quotes**: `"She said ""Hello"""`  → Becomes → `She said "Hello"`
+3. **Embedded Newlines**: Multi-line content within quoted fields
+4. **Empty Fields**: Consecutive commas or trailing commas
+5. **Line Ending Variations**: Automatic detection and handling
+6. **Large Files**: Streaming architecture prevents memory overflow
+
+### Exception Handling
+
+- **File Not Found**: Raised during `__init__` if filepath doesn't exist
+- **Permission Errors**: Raised during context manager entry
+- **Unicode Errors**: Handled with UTF-8 encoding by default
+- **Malformed CSV**: Partially quoted fields still parse gracefully
+
+## Troubleshooting
+
+### Issue: "UnicodeDecodeError" when reading files
+**Solution**: The reader uses UTF-8 encoding by default. For other encodings, modify `csv_parser.py` line 19:
+```python
+self.file = open(self.filepath, 'r', encoding='latin-1')  # or desired encoding
+```
+
+### Issue: Extra blank rows appearing in output
+**Solution**: Some CSV editors add empty lines at end. Use `filter(None, rows)` to remove empty rows:
+```python
+with CustomCsvReader('file.csv') as reader:
+    rows = [row for row in reader if any(row)]  # Filters completely empty rows
+```
+
+### Issue: Line endings differ between systems
+**Solution**: The parser auto-detects `\n` and `\r\n`. Output from `CustomCsvWriter` uses `\n` (Unix style) but is compatible with all systems.
+
+### Performance Considerations
+
+- **Read Optimization**: Use 8KB+ buffer for better performance with large files
+- **Write Optimization**: Use `writerows()` instead of multiple `writerow()` calls
+- **Memory Usage**: Streaming prevents loading entire files (constant O(1) memory per row)
+- **CPU vs I/O**: Most time spent on disk I/O, not parsing logic
+
+## Advanced Usage
+
+### Custom Encoding
+
+```python
+class CustomCsvReaderUTF16(CustomCsvReader):
+    def __enter__(self):
+        self.file = open(self.filepath, 'r', encoding='utf-16')
+        return self
+```
+
+### Monitoring Progress
+
+```python
+with CustomCsvReader('large_file.csv') as reader:
+    for i, row in enumerate(reader):
+        if i % 1000 == 0:
+            print(f"Processed {i} rows...")
+```
+
+## Testing Instructions
+
+Run the comprehensive test suite:
+
+```bash
+python test_csv_parser.py
+```
+
+Expected output:
+```
+============================================================
+COMPREHENSIVE CSV PARSER TEST SUITE
+============================================================
+
+✓ PASS: Basic parsing - row count
+✓ PASS: Basic parsing - header row
+...
+[11 tests total]
+
+Total Tests: 11
+Passed: 11
+Failed: 0
+Success Rate: 100.0%
+============================================================
+```
