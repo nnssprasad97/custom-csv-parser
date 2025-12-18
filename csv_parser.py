@@ -1,13 +1,26 @@
 """Custom CSV Parser Implementation.
 
+class CSVParsingError(Exception):
+    """Custom exception for CSV parsing errors."""
+    pass
+
+
+class CSVWriteError(Exception):
+    """Custom exception for CSV writing errors."""
+    pass
+
 This module provides custom implementations of CSV reader and writer classes
 that handle parsing and serialization of CSV data without relying on Python's
 built-in csv module.
+            Raises:
+                FileNotFoundError: If the CSV file does not exist.
+                IOError: If the file cannot be opened for reading.
 """
 
 
 class CustomCsvReader:
     """A streaming CSV reader that reads one row at a time.
+            Uses RFC 4180 compliant parsing with state machine approach.
     
     Implements the iterator protocol to efficiently parse CSV files
     without loading the entire file into memory.
